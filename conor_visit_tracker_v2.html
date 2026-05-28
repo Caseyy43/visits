@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Visit Tracker — May</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  :root {
+    --bg: #f5f4f0;
+    --card: #ffffff;
+    --border: rgba(0,0,0,0.1);
+    --text: #1a1a18;
+    --muted: #7a7974;
+    --accent: #1D9E75;
+    --accent-light: #E1F5EE;
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: 80px;
+  }
+
+  header {
+    background: var(--card);
+    border-bottom: 0.5px solid var(--border);
+    padding: 16px 16px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .header-title { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  .header-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .progress-bar { height: 3px; background: var(--border); border-radius: 2px; margin: 12px 0 0; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s ease; }
+
+  .tabs {
+    display: flex;
+    background: var(--card);
+    border-bottom: 0.5px solid var(--border);
+    padding: 0 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+
+  .tab-btn {
+    background: none;
+    border: none;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    color: var(--muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .tab-btn.active { color: var(--text); border-bottom-color: var(--text); }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 12px 12px 0;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+
+  .stat-num { font-size: 20px; font-weight: 600; letter-spacing: -0.5px; }
+  .stat-label { font-size: 10px; color: var(--muted); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+  .store-list { padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
+
+  .section-header {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    padding: 8px 0 2px;
+  }
+
+  .store-card {
+    background: var(--card);
+    border: 0.5px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    -webkit-user-select: none;
+    user-select: none;
+    transition: background 0.1s;
+  }
+
+  .store-card.complete {
+    background: #E1F5EE;
+    border-color: #9FE1CB;
+  }
+
+  .store-card.complete .store-name { color: #0F6E56; }
+  .store-card.complete .store-meta { color: #5DCAA5; }
+
+  .store-card.over .store-name { color: #185FA5; }
+  .store-card.over .store-meta { color: #378ADD; }
+  .store-card.over { background: #E6F1FB; border-color: #B5D4F4; }
+
+  .store-info { flex: 1; min-width: 0; }
+
+  .store-name {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .store-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .grade-badge {
+    font-size: 11px;
+    font-weight: 700;
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .grade-A { background: #E1F5EE; color: #0F6E56; }
+  .grade-B { background: #E6F1FB; color: #185FA5; }
+  .grade-C { background: #FAEEDA; color: #854F0B; }
+  .grade-D { background: #F1EFE8; color: #5F5E5A; }
+
+  .visit-counter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .dots {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 48px;
+  }
+
+  .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    background: white;
+  }
+
+  .dot.filled { background: var(--accent); border-color: var(--accent); }
+  .dot.over { background: #378ADD; border-color: #378ADD; }
+
+  .visit-text {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .reset-btn {
+    display: block;
+    margin: 16px auto;
+    padding: 10px 24px;
+    background: none;
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .legend {
+    display: flex;
+    gap: 12px;
+    padding: 8px 12px;
+    font-size: 11px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-top">
+    <div>
+      <div class="header-title">May Visit Tracker</div>
+      <div class="header-sub">Conor Casey · 52 stores · tap to log visits</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:13px;font-weight:600" id="dateDisplay"></div>
+      <div style="font-size:11px;color:var(--muted)" id="daysLeft"></div>
+    </div>
+  </div>
+  <div class="progress-bar">
+    <div class="progress-fill" id="progressFill" style="width:0%"></div>
+  </div>
+</header>
+
+<div class="tabs" id="tabBar"></div>
+
+<div class="stats-row" id="statsRow"></div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> visited</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#378ADD"></div> extra visit</div>
+  <div class="legend-item"><div class="legend-dot" style="background:white;border:1.5px solid #ccc"></div> due</div>
+</div>
+
+<div class="store-list" id="storeList"></div>
+
+<button class="reset-btn" onclick="resetAll()">Reset all visits</button>
+
+<script>
+const STORES = [
+  {"name":"Londonderry - Foyleside - O2 - 229","account":"O2","grade":"A","visitsPerMonth":4},
+  {"name":"Omagh - EE - 4220","account":"EE","grade":"B","visitsPerMonth":3},
+  {"name":"Londonderry - EE - R144","account":"EE","grade":"B","visitsPerMonth":3},
+  {"name":"Londonderry - H3G - 1613","account":"H3G","grade":"B","visitsPerMonth":3},
+  {"name":"Omagh - Voda - 60459","account":"VF","grade":"B","visitsPerMonth":3},
+  {"name":"Londonderry (Vodafone N.I) - Voda - 60819","account":"VF","grade":"B","visitsPerMonth":3},
+  {"name":"Newry - Currys - 2345","account":"Currys","grade":"C","visitsPerMonth":2},
+  {"name":"Londonderry - Currys - 2413","account":"Currys","grade":"C","visitsPerMonth":2},
+  {"name":"Enniskillen - Currys - 2398","account":"Currys","grade":"C","visitsPerMonth":2},
+  {"name":"Craigavon - Currys - 2346","account":"Currys","grade":"C","visitsPerMonth":2},
+  {"name":"Ballymena - EE - R130","account":"EE","grade":"C","visitsPerMonth":2},
+  {"name":"Strabane - O2 - 559","account":"O2","grade":"C","visitsPerMonth":2},
+  {"name":"Portadown - O2 - 234","account":"O2","grade":"C","visitsPerMonth":2},
+  {"name":"Omagh - O2 - 262","account":"O2","grade":"C","visitsPerMonth":2},
+  {"name":"Newry - O2 - 230","account":"O2","grade":"C","visitsPerMonth":2},
+  {"name":"Magherafelt - O2 - 554","account":"O2","grade":"C","visitsPerMonth":2},
+  {"name":"Limavady - O2 - 560","account":"O2","grade":"C","visitsPerMonth":2},
+  {"name":"Enniskillen - O2 - 555","account":"O2","grade":"C","visitsPerMonth":2},
+  {"name":"Craigavon - O2 - 328","account":"O2","grade":"C","visitsPerMonth":2},
+  {"name":"Cookstown - O2 - 556","account":"O2","grade":"C","visitsPerMonth":2},
+  {"name":"Coleraine - O2 - 213","account":"O2","grade":"C","visitsPerMonth":2},
+  {"name":"Ballymena - O2 - 203","account":"O2","grade":"C","visitsPerMonth":2},
+  {"name":"Armagh - O2 - 571","account":"O2","grade":"C","visitsPerMonth":2},
+  {"name":"Antrim Junction One - O2 - 522","account":"O2","grade":"C","visitsPerMonth":2},
+  {"name":"Newry - Sky","account":"Sky","grade":"C","visitsPerMonth":2},
+  {"name":"Newry - Voda - 60051","account":"VF","grade":"C","visitsPerMonth":2},
+  {"name":"Craigavon Rushmere - Voda - 60256","account":"VF","grade":"C","visitsPerMonth":2},
+  {"name":"Ballymena - Voda - 60366","account":"VF","grade":"C","visitsPerMonth":2},
+  {"name":"Coleraine - Currys - 2295","account":"Currys","grade":"D","visitsPerMonth":1},
+  {"name":"Ballymena - Currys - 2323","account":"Currys","grade":"D","visitsPerMonth":1},
+  {"name":"Cookstown - EE - 4321","account":"EE","grade":"D","visitsPerMonth":1},
+  {"name":"Coleraine - EE - 4238","account":"EE","grade":"D","visitsPerMonth":1},
+  {"name":"Newry - EE - R270","account":"EE","grade":"D","visitsPerMonth":1},
+  {"name":"Newry - H3G - 1375","account":"H3G","grade":"D","visitsPerMonth":1},
+  {"name":"Coleraine - H3G - 1443","account":"H3G","grade":"D","visitsPerMonth":1},
+  {"name":"Buttercrane Shopping Centre - Sky - 0348","account":"Sky","grade":"D","visitsPerMonth":1},
+  {"name":"Dungannon - Tesco - 2406","account":"Tesco","grade":"D","visitsPerMonth":1},
+  {"name":"Coleraine - Tesco - 2294","account":"Tesco","grade":"D","visitsPerMonth":1},
+  {"name":"Ballymoney Castle St - Tesco - 2281","account":"Tesco","grade":"D","visitsPerMonth":1},
+  {"name":"Antrim Massereene Extra - Tesco - 2195","account":"Tesco","grade":"D","visitsPerMonth":1},
+  {"name":"Newry Downshire Extra - Tesco - 5031","account":"Tesco","grade":"D","visitsPerMonth":1},
+  {"name":"Lurgan Carnegie St - Tesco - 5136","account":"Tesco","grade":"D","visitsPerMonth":1},
+  {"name":"Lisnagelvin - Tesco - 2838","account":"Tesco","grade":"D","visitsPerMonth":1},
+  {"name":"Enniskillen - Tesco - 5333","account":"Tesco","grade":"D","visitsPerMonth":1},
+  {"name":"Craigavon Extra - Tesco - 6271","account":"Tesco","grade":"D","visitsPerMonth":1},
+  {"name":"Cookstown Broadfield - Tesco - 3491","account":"Tesco","grade":"D","visitsPerMonth":1},
+  {"name":"Carrickfergus Castle Extra - Tesco - 5137","account":"Tesco","grade":"D","visitsPerMonth":1},
+  {"name":"Banbridge Extra - Tesco - 4506","account":"Tesco","grade":"D","visitsPerMonth":1},
+  {"name":"Ballymena - Tesco - 5335","account":"Tesco","grade":"D","visitsPerMonth":1},
+  {"name":"Magherafelt - Voda - 70197","account":"VF","grade":"D","visitsPerMonth":1},
+  {"name":"Enniskillen Erneside - Voda - 60293","account":"VF","grade":"D","visitsPerMonth":1},
+  {"name":"Coleraine (Vodafone N.I) - Voda - 60892","account":"VF","grade":"D","visitsPerMonth":1}
+];
+
+const ACCOUNTS = ['All','Currys','EE','H3G','O2','Sky','Tesco','VF'];
+let currentTab = 'All';
+
+function storageKey(store) {
+  return 'may25_' + store.name.replace(/[^a-z0-9]/gi,'_');
+}
+
+function getVisits(store) {
+  return parseInt(localStorage.getItem(storageKey(store)) || '0');
+}
+
+function setVisits(store, n) {
+  localStorage.setItem(storageKey(store), Math.max(0, n));
+}
+
+function tapStore(idx) {
+  const store = STORES[idx];
+  const current = getVisits(store);
+  const max = store.visitsPerMonth;
+  // cycle: 0 → 1 → ... → max+1 (one over) → 0
+  const next = current >= max + 1 ? 0 : current + 1;
+  setVisits(store, next);
+  render();
+}
+
+function visibleStores() {
+  if (currentTab === 'All') return STORES;
+  return STORES.filter(s => s.account === currentTab);
+}
+
+function render() {
+  const now = new Date();
+  const day = now.getDate();
+  const daysInMonth = 31; // May
+  const daysLeft = daysInMonth - day;
+
+  document.getElementById('dateDisplay').textContent = `23 May 2026`;
+  document.getElementById('daysLeft').textContent = `${daysLeft} days left`;
+
+  const stores = visibleStores();
+  const totalRequired = stores.reduce((a, s) => a + s.visitsPerMonth, 0);
+  const totalDone = stores.reduce((a, s) => a + Math.min(getVisits(s), s.visitsPerMonth), 0);
+  const complete = stores.filter(s => getVisits(s) >= s.visitsPerMonth).length;
+  const remaining = stores.filter(s => getVisits(s) < s.visitsPerMonth).length;
+  const pct = totalRequired ? Math.round((totalDone / totalRequired) * 100) : 0;
+
+  document.getElementById('progressFill').style.width = pct + '%';
+
+  document.getElementById('statsRow').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-num" style="color:var(--accent)">${complete}</div>
+      <div class="stat-label">Done</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">${remaining}</div>
+      <div class="stat-label">To do</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">${totalDone}/${totalRequired}</div>
+      <div class="stat-label">Visits</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">${pct}%</div>
+      <div class="stat-label">Complete</div>
+    </div>
+  `;
+
+  document.getElementById('tabBar').innerHTML = ACCOUNTS.map(a => {
+    const count = a === 'All' ? STORES.length : STORES.filter(s => s.account === a).length;
+    return `<button class="tab-btn ${currentTab===a?'active':''}" onclick="setTab('${a}')">${a} (${count})</button>`;
+  }).join('');
+
+  const grades = ['A','B','C','D'];
+  const gradeLabels = {
+    A:'Grade A — 4 visits/month',
+    B:'Grade B — 3 visits/month',
+    C:'Grade C — 2 visits/month',
+    D:'Grade D — 1 visit/month'
+  };
+
+  let html = '';
+
+  grades.forEach(g => {
+    const gradeStores = stores.filter(s => s.grade === g);
+    if (!gradeStores.length) return;
+
+    html += `<div class="section-header">${gradeLabels[g]}</div>`;
+
+    gradeStores.forEach(store => {
+      const idx = STORES.indexOf(store);
+      const visits = getVisits(store);
+      const max = store.visitsPerMonth;
+      const isComplete = visits >= max;
+      const isOver = visits > max;
+      const cardClass = isOver ? 'over' : isComplete ? 'complete' : '';
+
+      let dots = '';
+      const totalDots = Math.max(visits, max);
+      for (let i = 0; i < max; i++) {
+        dots += `<div class="dot ${i < visits ? 'filled' : ''}"></div>`;
+      }
+      if (visits > max) {
+        for (let i = max; i < visits; i++) {
+          dots += `<div class="dot over"></div>`;
+        }
+      }
+
+      const metaText = visits === 0
+        ? `${max} visit${max > 1 ? 's' : ''} needed`
+        : visits > max
+        ? `${visits}/${max} — ${visits - max} extra`
+        : visits === max
+        ? `All ${max} done ✓`
+        : `${visits}/${max} done`;
+
+      html += `
+        <div class="store-card ${cardClass}" onclick="tapStore(${idx})">
+          <div class="store-info">
+            <div class="store-name">${store.name}</div>
+            <div class="store-meta">${store.account} · ${metaText}</div>
+          </div>
+          <div class="visit-counter">
+            <div class="grade-badge grade-${store.grade}">${store.grade}</div>
+            <div class="dots">${dots}</div>
+          </div>
+        </div>`;
+    });
+  });
+
+  document.getElementById('storeList').innerHTML = html;
+}
+
+function setTab(tab) {
+  currentTab = tab;
+  render();
+}
+
+function resetAll() {
+  if (!confirm('Reset all visits for May?')) return;
+  STORES.forEach(s => localStorage.removeItem(storageKey(s)));
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
